@@ -1,9 +1,9 @@
 import numpy as np
 import cv2
 from keras import backend as K
-
 from utils import *
 from model import *
+import argparse
 
 #Define regularizations:
 def blur_regularization(img, grads, size = (3, 3)):
@@ -42,7 +42,7 @@ def gradient_ascent_iteration(loss_function, img):
 
     return img
 
-def visualize_filter(filter_index, img_placeholder):
+def visualize_filter(filter_index, img_placeholder, number_of_iterations = 20):
     loss = K.mean(layer[:, filter_index, :, :])
     grads = K.gradients(loss, img_placeholder)[0]
     grads = normalize(grads)
@@ -52,7 +52,7 @@ def visualize_filter(filter_index, img_placeholder):
     # we start from a gray image with some random noise
     input_img_data = np.random.random((1, 3, img_width, img_height)) * 20 + 128.
     # we run gradient ascent for 20 steps
-    for i in range(20):
+    for i in range(number_of_iterations):
         input_img_data = gradient_ascent_iteration(iterate, input_img_data)
 
     # decode the resulting input image
@@ -60,13 +60,25 @@ def visualize_filter(filter_index, img_placeholder):
     print "Done with filter", filter_index
     return img
 
+def get_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--iterations", type = int, default = 20, help = 'Number of gradient ascent iterations')
+    parser.add_argument("--img", type = str, help = 'Path to initial image')
+    parser.add_argument("--weights_path", type = str, default = 'vgg16_weights.h5', help = 'Path to network weights file')
+    parser.add_argument("--layer", type = str, default = 'conv5_1', help = 'Name of layer to use. Uses layer names in model.py')
+    parser.add_argument("--num_filters", type = int, default = 16, help = 'Number of filters to vizualize, starting from filter number 0.')
+    parser.add_argument("--size", type = int, default = 128, help = 'Image width and height')
+    args = parser.parse_args()
+    return args
+
 if __name__ == "__main__":
 
+    args = get_args()
+    print args
+
     #Configuration:
-    img_width, img_height = 128, 128
-    weights_path = 'vgg16_weights.h5'
-    layer_name = 'conv5_1'
-    filter_indexes = range(50, 50 + 16)
+    img_width, img_height = args.size, args.size
+    filter_indexes = range(0, args.num_filters)
 
     input_placeholder = K.placeholder((1, 3, img_width, img_height))
     first_layer = ZeroPadding2D((1, 1), input_shape=(3, img_width, img_height))
@@ -74,8 +86,8 @@ if __name__ == "__main__":
 
 
     model = get_model(first_layer)
-    model = load_model_weights(model, weights_path)
-    layer = get_output_layer(model, layer_name)
+    model = load_model_weights(model, args.weights_path)
+    layer = get_output_layer(model, args.layer)
 
     vizualizations = [None] * len(filter_indexes)
     for i, index in enumerate(filter_indexes):
