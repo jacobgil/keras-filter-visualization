@@ -1,35 +1,45 @@
 import numpy as np
 import cv2
-import h5py
 from keras import backend as K
 
 from utils import *
 from model import *
 
-def gradient_ascent_iteration(loss_function, img):
-    loss_value, grads_value = loss_function([img])
-    
-    gradient_ascent_step = img + grads_value * 0.9
-    #return gradient_ascent_step
-    transposed_row_major = np.transpose(gradient_ascent_step[0, :], (1, 2, 0))
+#Define regularizations:
+def blur_regularization(img, grads, size = (3, 3)):
+    return cv2.blur(img, size)
 
-    decay = 0.8 * (transposed_row_major)
-    blur = cv2.blur(transposed_row_major, (3, 3))
-    
-    clip_weak_gradients = transposed_row_major
-    grads_value_row_major = np.transpose(grads_value[0, :], (1, 2, 0))
-    gradients_columnstacked = np.reshape(grads_value_row_major, \
-                              (grads_value_row_major.shape[0] * grads_value_row_major.shape[1], \
-                              grads_value_row_major.shape[2]))
-    
-    clip_weak_gradients[np.where(grads_value_row_major <= np.percentile(gradients_columnstacked, 50, axis = 0))] = 0
-    
-    weights = np.float32([0, 5, 0])
+def decay_regularization(img, grads, decay = 0.8):
+    return decay * img
+
+def clip_weak_grad_regularization(img, grads, percentile = 50):
+    clipped = img
+    gradients_columnstacked = np.reshape(grads, (grads.shape[0] * grads.shape[1], grads.shape[2]))
+    clipped[np.where(grads <= np.percentile(gradients_columnstacked, 50, axis = 0))] = 0
+    return clipped
+
+def gradient_ascent_iteration(loss_function, img):
+    loss_value, grads_value = loss_function([img])    
+    gradient_ascent_step = img + grads_value * 0.9
+
+    #Convert to row major format for using opencv routines
+    grads_row_major = np.transpose(grads_value[0, :], (1, 2, 0))
+    img_row_major = np.transpose(gradient_ascent_step[0, :], (1, 2, 0))
+
+    #List of regularization functions to use
+    regularizations = [blur_regularization, decay_regularization, clip_weak_grad_regularization]
+
+    #The reguarlization weights
+    weights = np.float32([2, 2, 1])
     weights /= np.sum(weights)
 
-    img = weights[0] * decay +  weights[1] * blur + weights[2] * clip_weak_gradients
+    images = [reg_func(img_row_major, grads_row_major) for reg_func in regularizations]
+    weighted_images = np.float32([w * image for w, image in zip(weights, images)])
+    img = np.sum(weighted_images, axis = 0)
 
+    #Convert image back to 1 x 3 x height x width
     img = np.float32([np.transpose(img, (2, 0, 1))])
+
     return img
 
 def visualize_filter(filter_index, img_placeholder):
@@ -67,5 +77,8 @@ if __name__ == "__main__":
     model = load_model_weights(model, weights_path)
     layer = get_output_layer(model, layer_name)
 
-    vizualizations = [visualize_filter(index, input_placeholder) for index in filter_indexes]
-    save_filters(vizualizations)
+    vizualizations = [None] * len(filter_indexes)
+    for i, index in enumerate(filter_indexes):
+        vizualizations[i] = visualize_filter(index, input_placeholder)
+        #Save the visualizations made so far to see the progress:
+        save_filters(vizualizations, img_width, img_height)

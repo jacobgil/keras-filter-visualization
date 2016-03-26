@@ -2,7 +2,7 @@ import numpy as np
 import cv2
 from keras import backend as K
 
-def save_filters(filters):
+def save_filters(filters, img_width, img_height):
     margin = 5
     n = int(len(filters)**0.5)
     width = n * img_width + (n - 1) * margin

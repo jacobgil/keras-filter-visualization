@@ -1,6 +1,7 @@
 from keras.models import Sequential
 from keras.layers import Convolution2D, ZeroPadding2D, MaxPooling2D
 from keras.layers.core import Flatten, Dense, Dropout
+import h5py
 
 def get_model(first_layer):
     model = Sequential()
