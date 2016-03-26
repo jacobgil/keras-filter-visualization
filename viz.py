@@ -67,7 +67,7 @@ def get_args():
         'Path to image to project filter on, like in google dream. If not specified, uses a random init')
     parser.add_argument("--weights_path", type = str, default = 'vgg16_weights.h5', help = 'Path to network weights file')
     parser.add_argument("--layer", type = str, default = 'conv5_1', help = 'Name of layer to use. Uses layer names in model.py')
-    parser.add_argument("--num_filters", type = int, default = 1, help = 'Number of filters to vizualize, starting from filter number 0.')
+    parser.add_argument("--num_filters", type = int, default = 16, help = 'Number of filters to vizualize, starting from filter number 0.')
     parser.add_argument("--size", type = int, default = 128, help = 'Image width and height')
     args = parser.parse_args()
     return args
