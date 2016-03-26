@@ -43,6 +43,7 @@ def get_model(first_layer):
     return model
 
 def load_model_weights(model, weights_path):
+    print 'Loading model.'
     f = h5py.File(weights_path)
     for k in range(f.attrs['nb_layers']):
         if k >= len(model.layers):
