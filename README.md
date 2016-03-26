@@ -1,5 +1,15 @@
 ## Keras CNN filter visualization utility ##
 
+This is a utility for visualizing convolution filters in a Keras CNN model.
+Check [this](http://jacobcv.blogspot.com/2016/03/visualizing-cnn-filters-with-keras_26.html) blog post.
+
+By default this uses VGG16.  Get the reduced model without the fully connected layers from here:
+https://github.com/awentzonline/keras-vgg-buddy
+
+You can use the utility to project filters on a random image initial image, or on your own image to produce deep-dream like results.
+
+This is quite compute intensive and can take a few minutes depending on image sizes and number of filters.
+An intermediate image is written to disk so you can see the progress done so far.
 
 ----------
 
