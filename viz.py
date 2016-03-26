@@ -12,10 +12,10 @@ def blur_regularization(img, grads, size = (3, 3)):
 def decay_regularization(img, grads, decay = 0.8):
     return decay * img
 
-def clip_weak_grad_regularization(img, grads, percentile = 50):
+def clip_weak_pixel_regularization(img, grads, percentile = 1):
     clipped = img
-    gradients_columnstacked = np.reshape(grads, (grads.shape[0] * grads.shape[1], grads.shape[2]))
-    clipped[np.where(grads <= np.percentile(gradients_columnstacked, 50, axis = 0))] = 0
+    threshold = np.percentile(np.abs(img), percentile)
+    clipped[np.where(np.abs(img) < threshold)] = 0
     return clipped
 
 def gradient_ascent_iteration(loss_function, img):
@@ -27,10 +27,10 @@ def gradient_ascent_iteration(loss_function, img):
     img_row_major = np.transpose(gradient_ascent_step[0, :], (1, 2, 0))
 
     #List of regularization functions to use
-    regularizations = [blur_regularization, decay_regularization, clip_weak_grad_regularization]
+    regularizations = [blur_regularization, decay_regularization, clip_weak_pixel_regularization]
 
     #The reguarlization weights
-    weights = np.float32([2, 2, 1])
+    weights = np.float32([3, 3, 1])
     weights /= np.sum(weights)
 
     images = [reg_func(img_row_major, grads_row_major) for reg_func in regularizations]
@@ -101,5 +101,5 @@ if __name__ == "__main__":
     vizualizations = [None] * len(filter_indexes)
     for i, index in enumerate(filter_indexes):
         vizualizations[i] = visualize_filter(init_img, index, input_placeholder, args.iterations)
-        #Save the visualizations made so far to see the progress:
+        #Save the visualizations see the progress made so far
         save_filters(vizualizations, img_width, img_height)

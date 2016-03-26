@@ -34,7 +34,10 @@ def deprocess_image(x):
 
     # convert to RGB array
     x *= 255
-    x = x.transpose((1, 2, 0))
+
+    if x.shape[2] != 3:
+        x = x.transpose((1, 2, 0))
+    
     x = np.clip(x, 0, 255).astype('uint8')
     return x
 
