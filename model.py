@@ -43,7 +43,7 @@ def get_model(input_shape):
     return model
 
 def load_model_weights(model, weights_path):
-    print 'Loading model.'
+    print('Loading model.')
     f = h5py.File(weights_path)
     for k in range(f.attrs['nb_layers']):
         if k >= len(model.layers):
@@ -53,7 +53,7 @@ def load_model_weights(model, weights_path):
         weights = [g['param_{}'.format(p)] for p in range(g.attrs['nb_params'])]
         model.layers[k].set_weights(weights)
     f.close()
-    print 'Model loaded.'
+    print('Model loaded.')
     return model
 
 def get_output_layer(model, layer_name):
