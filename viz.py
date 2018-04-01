@@ -95,15 +95,17 @@ if __name__ == "__main__":
     #input_placeholder = K.placeholder((1, 3, img_width, img_height))
     #first_layer = ZeroPadding2D((1, 1), input_shape=(3, img_width, img_height))
     #first_layer.input = input_placeholder
-    input_placeholder = model.input
+    
     if K.image_data_format() == 'channels_first':
         input_shape = (3, img_width, img_height)
     else:
         input_shape = (img_width, img_height, 3)
 
     model = get_model(input_shape)
-    model = load_model_weights(model, args.weights_path)
+    #model = load_model_weights(model, args.weights_path)
+    model.load_weights(args.weights_path)
     layer = get_output_layer(model, args.layer)
+    input_placeholder = model.input
 
     if args.img is None:
         # we start from a gray image with some random noise
