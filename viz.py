@@ -23,8 +23,12 @@ def gradient_ascent_iteration(loss_function, img):
     gradient_ascent_step = img + grads_value * 0.9
 
     #Convert to row major format for using opencv routines
-    grads_row_major = np.transpose(grads_value[0, :], (1, 2, 0))
-    img_row_major = np.transpose(gradient_ascent_step[0, :], (1, 2, 0))
+    if K.image_data_format() == 'channels_first':
+        grads_row_major = np.transpose(grads_value[0, :], (1, 2, 0))
+        img_row_major = np.transpose(gradient_ascent_step[0, :], (1, 2, 0))
+    else:
+        grads_row_major = grads_value[0, :]
+        img_row_major = gradient_ascent_step[0, :]       
 
     #List of regularization functions to use
     regularizations = [blur_regularization, decay_regularization, clip_weak_pixel_regularization]
@@ -37,13 +41,20 @@ def gradient_ascent_iteration(loss_function, img):
     weighted_images = np.float32([w * image for w, image in zip(weights, images)])
     img = np.sum(weighted_images, axis = 0)
 
-    #Convert image back to 1 x 3 x height x width
-    img = np.float32([np.transpose(img, (2, 0, 1))])
+    if K.image_data_format() == 'channels_first':
+        #Convert image back to 1 x 3 x height x width
+        img = np.float32([np.transpose(img, (2, 0, 1))])
+    else:
+        img = np.float32([img])
 
     return img
 
-def visualize_filter(input_img, filter_index, img_placeholder, number_of_iterations = 20):
-    loss = K.mean(layer[:, filter_index, :, :])
+def visualize_filter(input_img, filter_index, img_placeholder, layer, number_of_iterations = 20):
+    if K.image_data_format() == 'channels_first':
+        loss = K.mean(layer[:, filter_index, :, :])
+    else:
+        loss = K.mean(layer[:, :, :, filter_index])
+        
     grads = K.gradients(loss, img_placeholder)[0]
     grads = normalize(grads)
     # this function returns the loss and grads given the input picture
@@ -57,7 +68,7 @@ def visualize_filter(input_img, filter_index, img_placeholder, number_of_iterati
 
     # decode the resulting input image
     img = deprocess_image(img[0])
-    print "Done with filter", filter_index
+    print("Done with filter", filter_index)
     return img
 
 def get_args():
@@ -75,31 +86,43 @@ def get_args():
 if __name__ == "__main__":
 
     args = get_args()
-    print args
+    print(args)
 
     #Configuration:
     img_width, img_height = args.size, args.size
     filter_indexes = range(0, args.num_filters)
 
-    input_placeholder = K.placeholder((1, 3, img_width, img_height))
-    first_layer = ZeroPadding2D((1, 1), input_shape=(3, img_width, img_height))
-    first_layer.input = input_placeholder
+    #input_placeholder = K.placeholder((1, 3, img_width, img_height))
+    #first_layer = ZeroPadding2D((1, 1), input_shape=(3, img_width, img_height))
+    #first_layer.input = input_placeholder
+    
+    if K.image_data_format() == 'channels_first':
+        input_shape = (3, img_width, img_height)
+    else:
+        input_shape = (img_width, img_height, 3)
 
-
-    model = get_model(first_layer)
-    model = load_model_weights(model, args.weights_path)
+    model = get_model(input_shape)
+    #model = load_model_weights(model, args.weights_path)
+    model.load_weights(args.weights_path)
     layer = get_output_layer(model, args.layer)
+    input_placeholder = model.input
 
     if args.img is None:
         # we start from a gray image with some random noise
-        init_img = np.random.random((1, 3, img_width, img_height)) * 20 + 128.
+        if K.image_data_format() == 'channels_first':
+            init_img = np.random.random((1, 3, img_width, img_height)) * 20 + 128.
+        else:
+            init_img = np.random.random((1, img_width, img_height, 3)) * 20 + 128.            
     else:
         img = cv2.imread(args.img, 1)
         img = cv2.resize(img, (img_width, img_height))
-        init_img = [np.transpose(img, (2, 0, 1))]
+        if K.image_data_format() == 'channels_first':
+            init_img = [np.transpose(img, (2, 0, 1))]
+        else:
+            init_img = [img]
 
     vizualizations = [None] * len(filter_indexes)
     for i, index in enumerate(filter_indexes):
-        vizualizations[i] = visualize_filter(init_img, index, input_placeholder, args.iterations)
+        vizualizations[i] = visualize_filter(init_img, index, input_placeholder, layer, args.iterations)
         #Save the visualizations see the progress made so far
         save_filters(vizualizations, img_width, img_height)
